@@ -50,7 +50,8 @@ const BuyTokens = () => {
     try {
       const stripe = await stripePromise;
       
-      // First create the checkout session on your server
+      console.log('Starting purchase with:', { priceId, tokenAmount });
+      
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -59,23 +60,24 @@ const BuyTokens = () => {
         body: JSON.stringify({
           priceId,
           tokenAmount,
-          userId: user.uid, // Add user ID to track the purchase
+          userId: user.uid,
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(`Server error: ${data.error || 'Unknown error'}`);
       }
 
-      const { sessionId } = await response.json();
-
-      if (!sessionId) {
+      if (!data.sessionId) {
         throw new Error('No session ID returned from server');
       }
 
-      // Redirect to Stripe checkout
+      console.log('Redirecting to checkout with session:', data.sessionId);
+      
       const result = await stripe.redirectToCheckout({
-        sessionId: sessionId
+        sessionId: data.sessionId
       });
 
       if (result.error) {
@@ -83,27 +85,15 @@ const BuyTokens = () => {
         throw new Error(result.error.message);
       }
     } catch (err) {
-      console.error('Purchase error:', err);
-      setMessage('Error processing purchase. Please try again.');
+      console.error('Purchase error details:', err);
+      setMessage(`Error: ${err.message}`);
     }
   };
 
   const tokenPackages = [
-    { 
-      amount: 3, 
-      price: 4, 
-      priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_3_TOKENS
-    },
-    { 
-      amount: 10, 
-      price: 12, 
-      priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_10_TOKENS
-    },
-    { 
-      amount: 25, 
-      price: 20, 
-      priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_25_TOKENS
-    }
+    { amount: 3, price: 4, priceId: 'price_1OqQPyRs5O538pxZXXXXXXXX' },
+    { amount: 10, price: 12, priceId: 'price_1OqQPyRs5O538pxZYYYYYYYY' },
+    { amount: 25, price: 20, priceId: 'price_1OqQPyRs5O538pxZZZZZZZZZ' },
   ];
 
   return (

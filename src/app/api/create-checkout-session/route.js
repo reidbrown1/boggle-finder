@@ -6,6 +6,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export async function POST(req) {
   try {
     const { priceId, tokenAmount, userId } = await req.json();
+    
+    console.log('Received request:', { priceId, tokenAmount, userId });
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
@@ -27,9 +29,9 @@ export async function POST(req) {
 
     return NextResponse.json({ sessionId: session.id });
   } catch (err) {
-    console.error('Error creating checkout session:', err);
+    console.error('Detailed error:', err);
     return NextResponse.json(
-      { error: 'Error creating checkout session' },
+      { error: err.message || 'Error creating checkout session' },
       { status: 500 }
     );
   }
