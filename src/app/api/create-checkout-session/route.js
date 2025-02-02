@@ -5,16 +5,22 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(req) {
   try {
-    const { priceId, tokenAmount, userId } = await req.json();
+    const { amount, price, userId } = await req.json();
     
-    console.log('Received request:', { priceId, tokenAmount, userId });
+    console.log('Received request:', { amount, price, userId });
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
-          price: priceId,
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `${amount} Tokens`,
+            },
+            unit_amount: price * 100, // Stripe uses cents
+          },
           quantity: 1,
         },
       ],
@@ -22,8 +28,8 @@ export async function POST(req) {
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/buy-tokens?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/buy-tokens?canceled=true`,
       metadata: {
-        userId: userId,
-        tokenAmount: tokenAmount.toString(),
+        userId,
+        tokenAmount: amount.toString(),
       },
     });
 

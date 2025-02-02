@@ -46,11 +46,11 @@ const BuyTokens = () => {
     }
   }, [user, router, searchParams]);
 
-  const handlePurchase = async (priceId, tokenAmount) => {
+  const handlePurchase = async (amount, price) => {
     try {
       const stripe = await stripePromise;
       
-      console.log('Starting purchase with:', { priceId, tokenAmount });
+      console.log('Starting purchase with:', { amount, price });
       
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
@@ -58,8 +58,8 @@ const BuyTokens = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          priceId,
-          tokenAmount,
+          amount,
+          price,
           userId: user.uid,
         }),
       });
@@ -91,9 +91,9 @@ const BuyTokens = () => {
   };
 
   const tokenPackages = [
-    { amount: 3, price: 4, priceId: 'price_1OqQPyRs5O538pxZXXXXXXXX' },
-    { amount: 10, price: 12, priceId: 'price_1OqQPyRs5O538pxZYYYYYYYY' },
-    { amount: 25, price: 20, priceId: 'price_1OqQPyRs5O538pxZZZZZZZZZ' },
+    { amount: 3, price: 4 },
+    { amount: 10, price: 12 },
+    { amount: 25, price: 20 }
   ];
 
   return (
@@ -114,7 +114,7 @@ const BuyTokens = () => {
           {tokenPackages.map((pkg) => (
             <button
               key={pkg.amount}
-              onClick={() => handlePurchase(pkg.priceId, pkg.amount)}
+              onClick={() => handlePurchase(pkg.amount, pkg.price)}
               className="relative bg-white rounded-xl shadow-md p-8 transition-transform hover:scale-105 text-left h-48 flex items-center justify-between"
             >
               <div className="flex flex-col items-start">
