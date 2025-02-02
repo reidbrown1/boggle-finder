@@ -171,13 +171,18 @@ export default function Home() {
         return a.localeCompare(b);
       });
 
-      // Limit words in test mode
+      // Add console logging here
+      console.log('All words and their paths:');
+      sortedWords.forEach(word => {
+        console.log(`['${word}', ${JSON.stringify(paths.get(word))}],`);
+      });
+
       setWords(isTestMode ? sortedWords.slice(0, 2) : sortedWords);
       setWordPaths(paths);
       setCurrentWordIndex(0);
       setIsLoading(false);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error finding words:', error);
       setError('Failed to use token');
       setIsLoading(false);
       return;
@@ -205,7 +210,7 @@ export default function Home() {
 
   // Calculate cell center positions for SVG lines
   const getCellCenter = (x, y) => {
-    const cellSize = 48; // w-12 = 48px
+    const cellSize = 64; // w-16 = 64px
     const gap = 8; // gap-2 = 8px
     return {
       x: (cellSize + gap) * y + cellSize / 2,
@@ -226,34 +231,45 @@ export default function Home() {
   // Add the Instructions Modal component
   const InstructionsModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 max-w-lg w-full">
+      <div className="bg-white rounded-lg p-6 max-w-lg w-full relative">
+        {/* Close button */}
+        <button
+          onClick={() => setShowInstructions(false)}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
         <h2 className="text-2xl font-bold mb-4">How to Use Boggle Finder</h2>
         
         <div className="text-gray-700 space-y-4">
-          <div className="bg-yellow-50 p-4 rounded-lg text-sm">
-            <p className="font-bold text-yellow-800">Disclaimer:</p>
-            <p>This application is best utilized on a laptop with your phone in hand.
-            Your token will be utilized upon clicking, so take care in entering the correct letters.</p>
+          <ol className="list-decimal list-inside space-y-3 ml-2">
+            <li>Launch your Boggle game on your mobile device</li>
+            <li>
+              <span className="font-semibold">Input the 16 letters with absolute precision</span> - 
+              accuracy and speed are crucial here as the game timer continues to run
+            </li>
+            <li>Click the "Search" button to generate all possible words and their paths</li>
+            <li>The optimal words will appear in descending order by length</li>
+            <li>
+              <span className="font-semibold">Maximize Efficiency:</span> Keep your focus on Boggle Finder's 
+              display while your finger traces the paths on your phone. Your device will vibrate upon 
+              successful word completion, eliminating the need to constantly look at your screen
+            </li>
+          </ol>
+
+          <div className="bg-yellow-50 p-4 rounded-lg text-sm mt-6">
+            <p className="font-bold text-yellow-800 mb-2">Important Notes:</p>
+            <ul className="space-y-2 list-disc list-inside">
+              <li className="text-yellow-800">For optimal performance, use this application on a laptop/desktop while having your mobile device ready for gameplay</li>
+              <li className="text-yellow-800">Each search consumes one token - ensure letter accuracy before initiating the search</li>
+              <li className="text-yellow-800">As your skill level increases, matchmaking times may extend. However, matches are typically filled within 24 hours - feel free to play multiple games and check back later for results</li>
+              <li className="text-red-600 font-medium">The majority of high-stakes players utilize assistance tools. Boggle Finder simply provides the most sophisticated and efficient solution available. As a result, you will eventually be matched with opponents at your skill level. Play with urgency!</li>
+            </ul>
           </div>
-
-          <ol className="list-decimal list-inside space-y-2 ml-2">
-            <li>Begin your game of boggle on your phone</li>
-            <li>Enter the 16 letters for the round</li>
-            <li>Press "Find Words"</li>
-            <li>All words available will appear and in the order in which you must connect the letters</li>
-        </ol>
-
-          <p className="text-sm text-gray-600 mt-4">
-            Each search costs 1 token. Make sure to enter the letters correctly before searching!
-          </p>
         </div>
-
-        <button
-          onClick={() => setShowInstructions(false)}
-          className="mt-6 w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          Got it!
-        </button>
       </div>
     </div>
   );
@@ -261,59 +277,82 @@ export default function Home() {
   // Add this new modal component after InstructionsModal
   const WhyThisExistsModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 max-w-lg w-full">
-        <h2 className="text-2xl font-bold mb-4">Why Does This Site Exist?</h2>
+      <div className="bg-white rounded-lg p-6 max-w-3xl w-full relative">
+        {/* Close button */}
+        <button
+          onClick={() => setShowWhyThisExists(false)}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <h2 className="text-2xl font-bold mb-6">Why Does This Site Exist?</h2>
         
-        <div className="text-gray-700 space-y-4">
-          <p className="font-bold text-lg">This site offers you a RISK FREE edge. If utilized correctly, you can print money.</p>
+        <p className="text-gray-700 mb-8">
+          Currently, there is an opportunity to take advantage of head-to-head wagering, 
+          specifically with the game Boggle. Using this site will give you an edge over any opponent, 
+          guaranteeing risk-free profit.
+        </p>
 
-          <p>Currently, there is an opportunity to take advantage of head to head wagering, specifically with the game Boggle. Using this site will give you an edge over any opponent, guaranteeing risk free profit.</p>
-
-          <div className="space-y-3">
-            <h3 className="font-bold">Available Platforms:</h3>
-            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-            <div>
-                <span className="font-semibold">FanDuel Faceoff:</span> $20 to win $16
-                <a href="https://apps.apple.com/us/app/fanduel-faceoff/id1608208805" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:text-blue-600 block text-sm">
-                  Download App →
-                </a>
-              </div>
-              <div>
-                <span className="font-semibold">World Winner (after 15 cash games):</span> $10 to win $7
-                <a href="https://apps.apple.com/us/app/worldwinner-play-cash-games/id1248993106" 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:text-blue-600 block text-sm">
-                  Download App →
-                </a>
-              </div>
-              <div>
-                <span className="font-semibold">Word Race:</span> $6 to win $4
-                <a href="https://apps.apple.com/us/app/word-race-train-your-brain/id1199652148" 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:text-blue-600 block text-sm">
-                  Download App →
-                </a>
-              </div>
-              
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* FanDuel Card */}
+          <div className="bg-white rounded-xl shadow-lg p-6 transition-transform hover:scale-105 text-center">
+            <img 
+              src="/landing1.png" 
+              alt="FanDuel Faceoff" 
+              className="w-32 h-32 object-cover rounded-xl mx-auto mb-6"
+            />
+            <h3 className="text-xl font-bold text-gray-900 mb-4">FanDuel Faceoff</h3>
+            <div className="text-3xl font-bold text-green-600 mb-6">$20 → $16</div>
+            <a 
+              href="https://apps.apple.com/us/app/fanduel-faceoff/id1608208805"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors w-full text-center"
+            >
+              Download App
+            </a>
           </div>
 
-          <div className="bg-blue-50 p-4 rounded-lg mt-4">
-            <p className="font-semibold">Note:</p>
-            <p>When you first start playing, you'll be matched with opponents quickly. As your win rate and scores increase, the matching process may take longer - sometimes a few hours - as the system looks for suitable opponents at your skill level. Don't worry though, your matches will still be completed, just with a bit more patience.</p>
+          {/* World Winner Card */}
+          <div className="bg-white rounded-xl shadow-lg p-6 transition-transform hover:scale-105 text-center">
+            <img 
+              src="/landing2.png" 
+              alt="World Winner" 
+              className="w-32 h-32 object-cover rounded-xl mx-auto mb-6"
+            />
+            <h3 className="text-xl font-bold text-gray-900 mb-4">World Winner</h3>
+            <div className="text-3xl font-bold text-green-600 mb-6">$10 → $7</div>
+            <a 
+              href="https://apps.apple.com/us/app/worldwinner-play-cash-games/id1248993106"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors w-full text-center"
+            >
+              Download App
+            </a>
           </div>
 
-          <button
-            onClick={() => setShowWhyThisExists(false)}
-            className="mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            Got it!
-          </button>
+          {/* Word Race Card */}
+          <div className="bg-white rounded-xl shadow-lg p-6 transition-transform hover:scale-105 text-center">
+            <img 
+              src="/landing3.png" 
+              alt="Word Race" 
+              className="w-32 h-32 object-cover rounded-xl mx-auto mb-6"
+            />
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Word Race</h3>
+            <div className="text-3xl font-bold text-green-600 mb-6">$6 → $4</div>
+            <a 
+              href="https://apps.apple.com/us/app/word-race-train-your-brain/id1199652148"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors w-full text-center"
+            >
+              Download App
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -540,7 +579,7 @@ export default function Home() {
                   row.map((letter, colIndex) => (
                     <div 
                       key={`${rowIndex}-${colIndex}`}
-                      className="w-12 h-12 border border-gray-300 flex items-center justify-center font-bold text-lg rounded-md"
+                      className="w-16 h-16 border border-gray-300 flex items-center justify-center font-bold text-xl rounded-md bg-white"
                     >
                       {letter}
                     </div>
@@ -655,7 +694,7 @@ export default function Home() {
 
               {/* Test mode disclaimer */}
               {isTestMode && (
-                <div className="text-center text-sm text-gray-600 mt-4 max-w-md">
+                <div className="text-center text-sm text-gray-600 mt-4 max-w-md bg-yellow-50 p-4 rounded-lg border border-yellow-100">
                   <p>This is test mode - you will only be shown the top two words. This is so you can see how this software functions. No tokens will be used. To see all available words you must turn off test mode.</p>
                 </div>
               )}

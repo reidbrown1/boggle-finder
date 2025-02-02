@@ -4,27 +4,43 @@ import { useState, useEffect } from 'react';
 
 export default function LandingPage() {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [dictionary, setDictionary] = useState(new Set());
-  const [words, setWords] = useState([]);
-  const [wordPaths, setWordPaths] = useState(new Map());
-  const [isLoading, setIsLoading] = useState(true);
   const demoLetters = "SDLYAIOBOCHNGTES";
-//   "SDLYAIOBOCHNGTES"
-// "DTWOLALESMAESODT";
+  
+  // Hardcoded demo data with just the longest/most interesting words and their paths
+  const [words] = useState([
+    'ACHIOTES', 'ACHIOTE', 'BODICES', 'CTENOID', 'ETHIONS', 'LICHENS', 'TECHILY',
+    'ACIDLY', 'BOCHES', 'BODICE', 'BODILY', 'COILON', 'ENOLIC', 'ETHION', 'GOTHIC',
+    'ICONES', 'LICHEN', 'LICHES', 'LIONET', 'LOCHIA', 'OCHONE', 'SACHET', 'SAICES',
+    'SETHIC', 'TECHNO'  // Limited to 25 longest words for demo
+  ]);
 
-  // Load dictionary and find words immediately
-  useEffect(() => {
-    setIsLoading(true);
-    fetch('https://raw.githubusercontent.com/benjamincrom/scrabble/refs/heads/master/scrabble/dictionary.json')
-      .then(response => response.json())
-      .then(data => {
-        const words = data.filter(word => word.length >= 3)
-                         .map(word => word.toUpperCase());
-        setDictionary(new Set(words));
-        findWords(new Set(words));  // Pass dictionary directly to findWords
-        setIsLoading(false);
-      });
-  }, []);
+  const [wordPaths] = useState(new Map([
+    ['ACHIOTES', [{"x":1,"y":0},{"x":2,"y":1},{"x":2,"y":2},{"x":1,"y":1},{"x":2,"y":0},{"x":3,"y":1},{"x":3,"y":2},{"x":3,"y":3}]],
+    ['ACHIOTE', [{"x":1,"y":0},{"x":2,"y":1},{"x":2,"y":2},{"x":1,"y":1},{"x":2,"y":0},{"x":3,"y":1},{"x":3,"y":2}]],
+    ['BODICES', [{"x":1,"y":3},{"x":1,"y":2},{"x":0,"y":1},{"x":1,"y":1},{"x":2,"y":1},{"x":3,"y":2},{"x":3,"y":3}]],
+    ['CTENOID', [{"x":2,"y":1},{"x":3,"y":1},{"x":3,"y":2},{"x":2,"y":3},{"x":1,"y":2},{"x":1,"y":1},{"x":0,"y":1}]],
+    ['ETHIONS', [{"x":3,"y":2},{"x":3,"y":1},{"x":2,"y":2},{"x":1,"y":1},{"x":1,"y":2},{"x":2,"y":3},{"x":3,"y":3}]],
+    ['LICHENS', [{"x":0,"y":2},{"x":1,"y":1},{"x":2,"y":1},{"x":2,"y":2},{"x":3,"y":2},{"x":2,"y":3},{"x":3,"y":3}]],
+    ['TECHILY', [{"x":3,"y":1},{"x":3,"y":2},{"x":2,"y":1},{"x":2,"y":2},{"x":1,"y":1},{"x":0,"y":2},{"x":0,"y":3}]],
+    ['ACIDLY', [{"x":1,"y":0},{"x":2,"y":1},{"x":1,"y":1},{"x":0,"y":1},{"x":0,"y":2},{"x":0,"y":3}]],
+    ['BOCHES', [{"x":1,"y":3},{"x":1,"y":2},{"x":2,"y":1},{"x":2,"y":2},{"x":3,"y":2},{"x":3,"y":3}]],
+    ['BODICE', [{"x":1,"y":3},{"x":1,"y":2},{"x":0,"y":1},{"x":1,"y":1},{"x":2,"y":1},{"x":3,"y":2}]],
+    ['BODILY', [{"x":1,"y":3},{"x":1,"y":2},{"x":0,"y":1},{"x":1,"y":1},{"x":0,"y":2},{"x":0,"y":3}]],
+    ['COILON', [{"x":2,"y":1},{"x":2,"y":0},{"x":1,"y":1},{"x":0,"y":2},{"x":1,"y":2},{"x":2,"y":3}]],
+    ['ENOLIC', [{"x":3,"y":2},{"x":2,"y":3},{"x":1,"y":2},{"x":0,"y":2},{"x":1,"y":1},{"x":2,"y":1}]],
+    ['ETHION', [{"x":3,"y":2},{"x":3,"y":1},{"x":2,"y":2},{"x":1,"y":1},{"x":1,"y":2},{"x":2,"y":3}]],
+    ['GOTHIC', [{"x":3,"y":0},{"x":2,"y":0},{"x":3,"y":1},{"x":2,"y":2},{"x":1,"y":1},{"x":2,"y":1}]],
+    ['ICONES', [{"x":1,"y":1},{"x":2,"y":1},{"x":1,"y":2},{"x":2,"y":3},{"x":3,"y":2},{"x":3,"y":3}]],
+    ['LICHEN', [{"x":0,"y":2},{"x":1,"y":1},{"x":2,"y":1},{"x":2,"y":2},{"x":3,"y":2},{"x":2,"y":3}]],
+    ['LICHES', [{"x":0,"y":2},{"x":1,"y":1},{"x":2,"y":1},{"x":2,"y":2},{"x":3,"y":2},{"x":3,"y":3}]],
+    ['LIONET', [{"x":0,"y":2},{"x":1,"y":1},{"x":1,"y":2},{"x":2,"y":3},{"x":3,"y":2},{"x":3,"y":1}]],
+    ['LOCHIA', [{"x":0,"y":2},{"x":1,"y":2},{"x":2,"y":1},{"x":2,"y":2},{"x":1,"y":1},{"x":1,"y":0}]],
+    ['OCHONE', [{"x":2,"y":0},{"x":2,"y":1},{"x":2,"y":2},{"x":1,"y":2},{"x":2,"y":3},{"x":3,"y":2}]],
+    ['SACHET', [{"x":0,"y":0},{"x":1,"y":0},{"x":2,"y":1},{"x":2,"y":2},{"x":3,"y":2},{"x":3,"y":1}]],
+    ['SAICES', [{"x":0,"y":0},{"x":1,"y":0},{"x":1,"y":1},{"x":2,"y":1},{"x":3,"y":2},{"x":3,"y":3}]],
+    ['SETHIC', [{"x":0,"y":0},{"x":3,"y":2},{"x":3,"y":1},{"x":2,"y":2},{"x":1,"y":1},{"x":2,"y":1}]],
+    ['TECHNO', [{"x":3,"y":1},{"x":3,"y":2},{"x":2,"y":1},{"x":2,"y":2},{"x":2,"y":3},{"x":1,"y":2}]]
+  ]));
 
   const createGrid = () => {
     const grid = [];
@@ -35,71 +51,6 @@ export default function LandingPage() {
       grid.push(row);
     }
     return grid;
-  };
-
-  const findWords = (dict) => {
-    const board = createGrid();
-    const foundWords = new Set();
-    const paths = new Map();
-    
-    const directions = [
-      [-1, -1], [-1, 0], [-1, 1],
-      [0, -1],           [0, 1],
-      [1, -1],  [1, 0],  [1, 1]
-    ];
-
-    function isValid(x, y) {
-      return x >= 0 && x < 4 && y >= 0 && y < 4;
-    }
-
-    function searchWord(x, y, visited, currentWord, path) {
-      const currentCell = board[x][y];
-      let newWord = currentWord;
-      
-      if (currentCell === 'QU') {
-        newWord += 'QU';
-      } else {
-        newWord += currentCell;
-      }
-
-      if (newWord.length >= 3 && dict.has(newWord)) {
-        foundWords.add(newWord);
-        paths.set(newWord, [...path]);
-      }
-
-      for (const [dx, dy] of directions) {
-        const newX = x + dx;
-        const newY = y + dy;
-
-        if (isValid(newX, newY) && !visited.has(`${newX},${newY}`)) {
-          visited.add(`${newX},${newY}`);
-          searchWord(
-            newX,
-            newY,
-            visited,
-            newWord,
-            [...path, { x: newX, y: newY }]
-          );
-          visited.delete(`${newX},${newY}`);
-        }
-      }
-    }
-
-    for (let i = 0; i < 4; i++) {
-      for (let j = 0; j < 4; j++) {
-        const visited = new Set([`${i},${j}`]);
-        searchWord(i, j, visited, '', [{ x: i, y: j }]);
-      }
-    }
-
-    const sortedWords = [...foundWords].sort((a, b) => {
-      if (b.length !== a.length) return b.length - a.length;
-      return a.localeCompare(b);
-    });
-
-    setWords(sortedWords);
-    setWordPaths(paths);
-    setCurrentWordIndex(0);
   };
 
   const getCellCenter = (x, y) => {
@@ -237,115 +188,109 @@ export default function LandingPage() {
 
               {/* Demo Grid Section - rest stays the same */}
               <div className="flex flex-col items-center gap-8">
-                {isLoading ? (
-                  <div className="text-gray-600">Loading demo...</div>
-                ) : (
-                  <>
-                    <div className="border border-gray-300 rounded-lg p-4 w-full max-w-md bg-gray-100">
-                      {demoLetters}
-                    </div>
-                    
-                    <div className="relative">
-                      <div className="grid grid-cols-4 gap-2">
-                        {createGrid().map((row, rowIndex) => (
-                          row.map((letter, colIndex) => (
-                            <div 
-                              key={`${rowIndex}-${colIndex}`}
-                              className="w-12 h-12 border border-gray-300 flex items-center justify-center font-bold text-lg rounded-md bg-white"
-                            >
-                              {letter}
-                            </div>
-                          ))
-                        ))}
-                      </div>
+                <div className="border border-gray-300 rounded-lg p-4 w-full max-w-md bg-gray-100">
+                  {demoLetters}
+                </div>
+                
+                <div className="relative">
+                  <div className="grid grid-cols-4 gap-2">
+                    {createGrid().map((row, rowIndex) => (
+                      row.map((letter, colIndex) => (
+                        <div 
+                          key={`${rowIndex}-${colIndex}`}
+                          className="w-12 h-12 border border-gray-300 flex items-center justify-center font-bold text-lg rounded-md bg-white"
+                        >
+                          {letter}
+                        </div>
+                      ))
+                    ))}
+                  </div>
 
-                      {/* Add SVG overlay for paths */}
-                      <svg 
-                        className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                        style={{ transform: 'translate(-2px, -2px)' }}
+                  {/* Add SVG overlay for paths */}
+                  <svg 
+                    className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                    style={{ transform: 'translate(-2px, -2px)' }}
+                  >
+                    {wordPaths.get(words[currentWordIndex])?.[0] && (
+                      <circle
+                        cx={getCellCenter(
+                          wordPaths.get(words[currentWordIndex])[0].x,
+                          wordPaths.get(words[currentWordIndex])[0].y
+                        ).x}
+                        cy={getCellCenter(
+                          wordPaths.get(words[currentWordIndex])[0].x,
+                          wordPaths.get(words[currentWordIndex])[0].y
+                        ).y}
+                        r="8"
+                        fill="#22C55E"
+                        opacity="0.8"
                       >
-                        {wordPaths.get(words[currentWordIndex])?.[0] && (
-                          <circle
-                            cx={getCellCenter(
-                              wordPaths.get(words[currentWordIndex])[0].x,
-                              wordPaths.get(words[currentWordIndex])[0].y
-                            ).x}
-                            cy={getCellCenter(
-                              wordPaths.get(words[currentWordIndex])[0].x,
-                              wordPaths.get(words[currentWordIndex])[0].y
-                            ).y}
-                            r="8"
-                            fill="#22C55E"
-                            opacity="0.8"
-                          >
-                            <animate
-                              attributeName="r"
-                              values="8;12;8"
-                              dur="1.5s"
-                              repeatCount="indefinite"
-                            />
-                            <animate
-                              attributeName="opacity"
-                              values="0.8;0.2;0.8"
-                              dur="1.5s"
-                              repeatCount="indefinite"
-                            />
-                          </circle>
-                        )}
+                        <animate
+                          attributeName="r"
+                          values="8;12;8"
+                          dur="1.5s"
+                          repeatCount="indefinite"
+                        />
+                        <animate
+                          attributeName="opacity"
+                          values="0.8;0.2;0.8"
+                          dur="1.5s"
+                          repeatCount="indefinite"
+                        />
+                      </circle>
+                    )}
 
-                        {wordPaths.get(words[currentWordIndex])?.map((point, index, path) => {
-                          if (index === path.length - 1) return null;
-                          const start = getCellCenter(point.x, point.y);
-                          const end = getCellCenter(path[index + 1].x, path[index + 1].y);
-                          return (
-                            <line
-                              key={index}
-                              x1={start.x}
-                              y1={start.y}
-                              x2={end.x}
-                              y2={end.y}
-                              stroke="#3B82F6"
-                              strokeWidth="3"
-                              strokeLinecap="round"
-                            >
-                              <animate
-                                attributeName="stroke-dashoffset"
-                                from="100"
-                                to="0"
-                                dur="0.5s"
-                                fill="freeze"
-                              />
-                            </line>
-                          );
-                        })}
-                      </svg>
-                    </div>
+                    {wordPaths.get(words[currentWordIndex])?.map((point, index, path) => {
+                      if (index === path.length - 1) return null;
+                      const start = getCellCenter(point.x, point.y);
+                      const end = getCellCenter(path[index + 1].x, path[index + 1].y);
+                      return (
+                        <line
+                          key={index}
+                          x1={start.x}
+                          y1={start.y}
+                          x2={end.x}
+                          y2={end.y}
+                          stroke="#3B82F6"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                        >
+                          <animate
+                            attributeName="stroke-dashoffset"
+                            from="100"
+                            to="0"
+                            dur="0.5s"
+                            fill="freeze"
+                          />
+                        </line>
+                      );
+                    })}
+                  </svg>
+                </div>
 
-                    {/* Current word display */}
-                    <div className="text-2xl font-bold h-12 min-w-[200px] border border-gray-300 rounded-lg bg-white flex items-center justify-center">
-                      {words[currentWordIndex]}
-                    </div>
+                {/* Current word display */}
+                <div className="text-2xl font-bold h-12 min-w-[200px] border border-gray-300 rounded-lg bg-white flex items-center justify-center">
+                  {words[currentWordIndex]}
+                </div>
 
-                    {/* Navigation buttons */}
-                    <div className="flex gap-4">
-                      <button
-                        onClick={handlePrevious}
-                        disabled={currentWordIndex === 0}
-                        className="bg-gray-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-600"
-                      >
-                        Prev
-                      </button>
+                {/* Navigation buttons */}
+                <div className="flex gap-4">
+                  <button
+                    onClick={handlePrevious}
+                    disabled={currentWordIndex === 0}
+                    className="bg-gray-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-600"
+                  >
+                    Prev
+                  </button>
 
-                      <button
-                        onClick={handleNext}
-                        disabled={currentWordIndex === words.length - 1}
-                        className="bg-gray-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-600"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </>
-                )}
+                  <button
+                    onClick={handleNext}
+                    disabled={currentWordIndex === words.length - 1}
+                    className="bg-gray-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-600"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
           </div>
