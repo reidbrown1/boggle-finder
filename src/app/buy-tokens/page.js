@@ -50,6 +50,7 @@ const BuyTokens = () => {
     try {
       const stripe = await stripePromise;
       
+      // First create the checkout session on your server
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -58,24 +59,51 @@ const BuyTokens = () => {
         body: JSON.stringify({
           priceId,
           tokenAmount,
+          userId: user.uid, // Add user ID to track the purchase
         }),
       });
 
-      const { sessionId } = await response.json();
-      const { error } = await stripe.redirectToCheckout({ sessionId });
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
 
-      if (error) {
-        console.error('Error:', error);
+      const { sessionId } = await response.json();
+
+      if (!sessionId) {
+        throw new Error('No session ID returned from server');
+      }
+
+      // Redirect to Stripe checkout
+      const result = await stripe.redirectToCheckout({
+        sessionId: sessionId
+      });
+
+      if (result.error) {
+        console.error('Stripe redirect error:', result.error);
+        throw new Error(result.error.message);
       }
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Purchase error:', err);
+      setMessage('Error processing purchase. Please try again.');
     }
   };
 
   const tokenPackages = [
-    { amount: 3, price: 4, priceId: 'price_1OqQPyRs5O538pxZXXXXXXXX' },
-    { amount: 10, price: 12, priceId: 'price_1OqQPyRs5O538pxZYYYYYYYY' },
-    { amount: 25, price: 20, priceId: 'price_1OqQPyRs5O538pxZZZZZZZZZ' },
+    { 
+      amount: 3, 
+      price: 4, 
+      priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_3_TOKENS
+    },
+    { 
+      amount: 10, 
+      price: 12, 
+      priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_10_TOKENS
+    },
+    { 
+      amount: 25, 
+      price: 20, 
+      priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_25_TOKENS
+    }
   ];
 
   return (
