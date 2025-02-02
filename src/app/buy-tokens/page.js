@@ -91,9 +91,9 @@ const BuyTokens = () => {
   };
 
   const tokenPackages = [
-    { amount: 3, price: 4 },
-    { amount: 10, price: 12 },
-    { amount: 25, price: 20 }
+    { amount: 3, price: 3 },
+    { amount: 10, price: 9 },
+    { amount: 30, price: 20 }
   ];
 
   return (

@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from './hooks/useFirestore';
 import { FaBars, FaTimes } from 'react-icons/fa';
+import Link from 'next/link';
 
 export default function Home() {
   const { user, logOut } = useAuth();
@@ -24,6 +25,7 @@ export default function Home() {
   const [referralCode, setReferralCode] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTestMode, setIsTestMode] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
 
   // Load Scrabble dictionary when component mounts
   useEffect(() => {
@@ -51,7 +53,7 @@ export default function Home() {
   // Add this effect to check authentication
   useEffect(() => {
     if (!user) {
-      router.push('/login');
+      router.push('/landing');
     }
   }, [user, router]);
 
@@ -270,39 +272,40 @@ export default function Home() {
           <div className="space-y-3">
             <h3 className="font-bold">Available Platforms:</h3>
             <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-              <div>
+            <div>
                 <span className="font-semibold">FanDuel Faceoff:</span> $20 to win $16
                 <a href="https://apps.apple.com/us/app/fanduel-faceoff/id1608208805" 
-                   target="_blank" 
-                   rel="noopener noreferrer"
-                   className="text-blue-500 hover:text-blue-600 block text-sm">
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:text-blue-600 block text-sm">
+                  Download App →
+                </a>
+              </div>
+              <div>
+                <span className="font-semibold">World Winner (after 15 cash games):</span> $10 to win $7
+                <a href="https://apps.apple.com/us/app/worldwinner-play-cash-games/id1248993106" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:text-blue-600 block text-sm">
                   Download App →
                 </a>
               </div>
               <div>
                 <span className="font-semibold">Word Race:</span> $6 to win $4
                 <a href="https://apps.apple.com/us/app/word-race-train-your-brain/id1199652148" 
-            target="_blank"
-            rel="noopener noreferrer"
-                   className="text-blue-500 hover:text-blue-600 block text-sm">
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:text-blue-600 block text-sm">
                   Download App →
                 </a>
               </div>
-              <div>
-                <span className="font-semibold">World Winner:</span> $10 to win $7
-                <a href="https://apps.apple.com/us/app/worldwinner-play-cash-games/id1248993106" 
-            target="_blank"
-            rel="noopener noreferrer"
-                   className="text-blue-500 hover:text-blue-600 block text-sm">
-                  Download App →
-                </a>
-              </div>
+              
             </div>
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg mt-4">
-            <p className="font-semibold">Advice:</p>
-            <p>FanDuel Faceoff has the most liquidity and highest return. From experience, aim for about 1000-1200 points to secure a win. Any higher scores may slow down opponent matching due to the skill-based matchmaking system.</p>
+            <p className="font-semibold">Note:</p>
+            <p>When you first start playing, you'll be matched with opponents quickly. As your win rate and scores increase, the matching process may take longer - sometimes a few hours - as the system looks for suitable opponents at your skill level. Don't worry though, your matches will still be completed, just with a bit more patience.</p>
           </div>
 
           <button
@@ -335,14 +338,14 @@ export default function Home() {
     loadReferralCode();
   }, [isSidebarOpen, user]);
 
-  // Update the Sidebar component to include email display
+  // Update the Sidebar component
   const Sidebar = () => (
     <div 
       className={`fixed top-0 left-0 h-full w-64 bg-gray-50 shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
-      <div className="p-4">
+      <div className="p-4 flex flex-col h-full">
         <div className="flex justify-end">
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -352,7 +355,7 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="space-y-4 mt-4">
+        <div className="space-y-4 mt-4 flex-grow">
           <button
             onClick={() => {
               router.push('/buy-tokens');
@@ -399,7 +402,7 @@ export default function Home() {
             <p className="text-xl font-bold text-blue-600">{referralCode}</p>
             <p className="text-xs text-gray-500 mt-2">
               Share this code with friends! When they sign up using your code, 
-              you both get 2 extra tokens!
+              you both get 3 extra tokens!
             </p>
           </div>
 
@@ -409,188 +412,257 @@ export default function Home() {
             <p className="text-sm text-gray-900">{user?.email}</p>
           </div>
         </div>
+
+        {/* Contact Information - Added at bottom */}
+        <div className="mt-auto pt-4 text-center text-sm text-gray-500">
+          <p>Questions or concerns?</p>
+          <a 
+            href="mailto:bogglefinder.help@gmail.com"
+            className="text-blue-600 hover:text-blue-700"
+          >
+            bogglefinder.help@gmail.com
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Add this landing page component
+  const LandingPage = () => (
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation */}
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <div className="text-xl font-bold text-gray-900">
+              Boggle Finder
+            </div>
+            <div className="flex gap-4">
+              <Link
+                href="/login"
+                className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Login
+              </Link>
+              <Link
+                href="/login"
+                onClick={() => setIsSignUp(true)}
+                className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors"
+              >
+                Sign Up
+              </Link>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl md:text-6xl">
+            Gain Your Edge in Head-to-Head Boggle
+          </h1>
+          <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+            Experience nearly guaranteed wins in Boggle head-to-head matches. Our platform provides you with optimal word solutions, giving you a significant competitive advantage.
+          </p>
+          <div className="mt-10">
+            <Link
+              href="/login"
+              onClick={() => setIsSignUp(true)}
+              className="bg-blue-500 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-600 transition-colors"
+            >
+              Get Started
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen relative">
-      {/* Hamburger menu button */}
-      <div className="absolute top-4 left-4">
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="p-2 hover:bg-gray-100 rounded-lg"
-        >
-          <FaBars className="w-6 h-6 text-gray-600" />
-        </button>
-      </div>
-
-      {/* Updated tokens display with larger text */}
-      <div className="absolute top-4 right-4 flex items-center gap-4">
-        {/* Test mode button with disabled state */}
-        <button
-          onClick={toggleTestMode}
-          disabled={words.length > 0}
-          className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-300"
-        >
-          Test Mode {isTestMode ? 'On' : 'Off'}
-        </button>
-        <div className="bg-gray-100 px-5 py-3 rounded-lg font-bold text-lg">
-          Tokens: {tokens}
-        </div>
-      </div>
-
-      {/* Sidebar */}
-      <Sidebar />
-
-      {/* Modals */}
-      {showInstructions && <InstructionsModal />}
-      {showWhyThisExists && <WhyThisExistsModal />}
-
-      {/* Main content */}
-      <div className="min-h-screen flex flex-col items-center pt-32 gap-8 p-8">
-        {words.length === 0 ? (
-          <input 
-            type="text" 
-            value={letters}
-            onChange={handleInput}
-            className="border border-gray-300 rounded-lg p-4 w-full max-w-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter exactly 16 letters..."
-            maxLength={16}
-          />
-        ) : (
-          <div className="border border-gray-300 rounded-lg p-4 w-full max-w-md bg-gray-100">
-            {letters}
-          </div>
-        )}
-        
-        <div className="relative">
-          <div className="grid grid-cols-4 gap-2">
-            {createGrid().map((row, rowIndex) => (
-              row.map((letter, colIndex) => (
-                <div 
-                  key={`${rowIndex}-${colIndex}`}
-                  className="w-12 h-12 border border-gray-300 flex items-center justify-center font-bold text-lg rounded-md"
-                >
-                  {letter}
-                </div>
-              ))
-            ))}
-          </div>
-
-          {words.length > 0 && (
-            <svg 
-              className="absolute top-0 left-0 w-full h-full pointer-events-none"
-              style={{ transform: 'translate(-2px, -2px)' }}
-            >
-              {wordPaths.get(words[currentWordIndex])?.[0] && (
-                <circle
-                  cx={getCellCenter(
-                    wordPaths.get(words[currentWordIndex])[0].x,
-                    wordPaths.get(words[currentWordIndex])[0].y
-                  ).x}
-                  cy={getCellCenter(
-                    wordPaths.get(words[currentWordIndex])[0].x,
-                    wordPaths.get(words[currentWordIndex])[0].y
-                  ).y}
-                  r="8"
-                  fill="#22C55E"
-                  opacity="0.8"
-                >
-                  <animate
-                    attributeName="r"
-                    values="8;12;8"
-                    dur="1.5s"
-                    repeatCount="indefinite"
-                  />
-                  <animate
-                    attributeName="opacity"
-                    values="0.8;0.2;0.8"
-                    dur="1.5s"
-                    repeatCount="indefinite"
-                  />
-                </circle>
-              )}
-
-              {wordPaths.get(words[currentWordIndex])?.map((point, index, path) => {
-                if (index === path.length - 1) return null;
-                const start = getCellCenter(point.x, point.y);
-                const end = getCellCenter(path[index + 1].x, path[index + 1].y);
-                return (
-                  <line
-                    key={index}
-                    x1={start.x}
-                    y1={start.y}
-                    x2={end.x}
-                    y2={end.y}
-                    stroke="#3B82F6"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  >
-                    <animate
-                      attributeName="stroke-dashoffset"
-                      from="100"
-                      to="0"
-                      dur="0.5s"
-                      fill="freeze"
-                    />
-                  </line>
-                );
-              })}
-            </svg>
-          )}
-        </div>
-
-        {/* Current word display */}
-        <div className="text-2xl font-bold h-12 min-w-[200px] border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
-          {words.length > 0 ? words[currentWordIndex] : ''}
-        </div>
-
-        {/* Button container and test mode message */}
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex gap-4 items-center">
+    <>
+      {!user ? (
+        <LandingPage />
+      ) : (
+        <div className="min-h-screen relative">
+          {/* Hamburger menu button */}
+          <div className="absolute top-4 left-4">
             <button
-              onClick={handleClear}
-              disabled={letters.length === 0}
-              className="bg-red-700 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-red-800"
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 hover:bg-gray-100 rounded-lg"
             >
-              Clear
-            </button>
-
-            <button
-              onClick={findWords}
-              disabled={letters.length !== 16 || isLoading || tokens <= 0 || words.length > 0}
-              className="bg-green-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors w-33 enabled:hover:bg-green-600"
-            >
-              {tokens <= 0 ? 'Buy Tokens' : 
-                isLoading ? `Loading${loadingDots}` : 'Search'}
-            </button>
-
-            <button
-              onClick={handlePrevious}
-              disabled={currentWordIndex === 0 || words.length === 0}
-              className="bg-gray-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-600"
-            >
-              Prev
-            </button>
-
-            <button
-              onClick={handleNext}
-              disabled={currentWordIndex === words.length - 1 || words.length === 0}
-              className="bg-gray-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-600"
-            >
-              Next
+              <FaBars className="w-6 h-6 text-gray-600" />
             </button>
           </div>
 
-          {/* Test mode disclaimer */}
-          {isTestMode && (
-            <div className="text-center text-sm text-gray-600 mt-4 max-w-md">
-              <p>This is test mode - you will only be shown the top two words. This is so you can see how this software functions. To see all available words you must use a token.</p>
+          {/* Updated tokens display with larger text */}
+          <div className="absolute top-4 right-4 flex items-center gap-4">
+            {/* Test mode button with disabled state */}
+            <button
+              onClick={toggleTestMode}
+              disabled={words.length > 0}
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-300"
+            >
+              Test Mode {isTestMode ? 'On' : 'Off'}
+            </button>
+            <div className="bg-gray-100 px-5 py-3 rounded-lg font-bold text-lg">
+              Tokens: {tokens}
             </div>
-          )}
+          </div>
+
+          {/* Sidebar */}
+          <Sidebar />
+
+          {/* Modals */}
+          {showInstructions && <InstructionsModal />}
+          {showWhyThisExists && <WhyThisExistsModal />}
+
+          {/* Main content */}
+          <div className="min-h-screen flex flex-col items-center pt-32 gap-8 p-8">
+            {words.length === 0 ? (
+              <input 
+                type="text" 
+                value={letters}
+                onChange={handleInput}
+                className="border border-gray-300 rounded-lg p-4 w-full max-w-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter exactly 16 letters..."
+                maxLength={16}
+              />
+            ) : (
+              <div className="border border-gray-300 rounded-lg p-4 w-full max-w-md bg-gray-100">
+                {letters}
+              </div>
+            )}
+            
+            <div className="relative">
+              <div className="grid grid-cols-4 gap-2">
+                {createGrid().map((row, rowIndex) => (
+                  row.map((letter, colIndex) => (
+                    <div 
+                      key={`${rowIndex}-${colIndex}`}
+                      className="w-12 h-12 border border-gray-300 flex items-center justify-center font-bold text-lg rounded-md"
+                    >
+                      {letter}
+                    </div>
+                  ))
+                ))}
+              </div>
+
+              {words.length > 0 && (
+                <svg 
+                  className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                  style={{ transform: 'translate(-2px, -2px)' }}
+                >
+                  {wordPaths.get(words[currentWordIndex])?.[0] && (
+                    <circle
+                      cx={getCellCenter(
+                        wordPaths.get(words[currentWordIndex])[0].x,
+                        wordPaths.get(words[currentWordIndex])[0].y
+                      ).x}
+                      cy={getCellCenter(
+                        wordPaths.get(words[currentWordIndex])[0].x,
+                        wordPaths.get(words[currentWordIndex])[0].y
+                      ).y}
+                      r="8"
+                      fill="#22C55E"
+                      opacity="0.8"
+                    >
+                      <animate
+                        attributeName="r"
+                        values="8;12;8"
+                        dur="1.5s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        values="0.8;0.2;0.8"
+                        dur="1.5s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  )}
+
+                  {wordPaths.get(words[currentWordIndex])?.map((point, index, path) => {
+                    if (index === path.length - 1) return null;
+                    const start = getCellCenter(point.x, point.y);
+                    const end = getCellCenter(path[index + 1].x, path[index + 1].y);
+                    return (
+                      <line
+                        key={index}
+                        x1={start.x}
+                        y1={start.y}
+                        x2={end.x}
+                        y2={end.y}
+                        stroke="#3B82F6"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      >
+                        <animate
+                          attributeName="stroke-dashoffset"
+                          from="100"
+                          to="0"
+                          dur="0.5s"
+                          fill="freeze"
+                        />
+                      </line>
+                    );
+                  })}
+                </svg>
+              )}
+            </div>
+
+            {/* Current word display */}
+            <div className="text-2xl font-bold h-12 min-w-[200px] border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
+              {words.length > 0 ? words[currentWordIndex] : ''}
+            </div>
+
+            {/* Button container and test mode message */}
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex gap-4 items-center">
+                <button
+                  onClick={handleClear}
+                  disabled={letters.length === 0}
+                  className="bg-red-700 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-red-800"
+                >
+                  Clear
+                </button>
+
+                <button
+                  onClick={findWords}
+                  disabled={letters.length !== 16 || isLoading || tokens <= 0 || words.length > 0}
+                  className="bg-green-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors w-33 enabled:hover:bg-green-600"
+                >
+                  {tokens <= 0 ? 'Buy Tokens' : 
+                    isLoading ? `Loading${loadingDots}` : 'Search'}
+                </button>
+
+                <button
+                  onClick={handlePrevious}
+                  disabled={currentWordIndex === 0 || words.length === 0}
+                  className="bg-gray-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-600"
+                >
+                  Prev
+                </button>
+
+                <button
+                  onClick={handleNext}
+                  disabled={currentWordIndex === words.length - 1 || words.length === 0}
+                  className="bg-gray-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-600"
+                >
+                  Next
+                </button>
+              </div>
+
+              {/* Test mode disclaimer */}
+              {isTestMode && (
+                <div className="text-center text-sm text-gray-600 mt-4 max-w-md">
+                  <p>This is test mode - you will only be shown the top two words. This is so you can see how this software functions. No tokens will be used. To see all available words you must turn off test mode.</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }

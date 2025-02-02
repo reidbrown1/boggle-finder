@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FaCheck, FaTimes } from 'react-icons/fa';
 import { useFirestore } from '../hooks/useFirestore';
 
@@ -13,12 +13,22 @@ export default function Login() {
   const [error, setError] = useState('');
   const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const { signIn, signUp, verificationPending, verifyCode } = useAuth();
+  const { signIn, signUp, verificationPending, verifyCode, setVerificationPending } = useAuth();
   const router = useRouter();
   const [verificationInput, setVerificationInput] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isReferralValid, setIsReferralValid] = useState(null);
   const { validateReferralCode } = useFirestore();
+  const [showVerification, setShowVerification] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Check if we should show signup form
+    if (searchParams.get('signup') === 'true') {
+      setIsSignUp(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setIsPasswordValid(
@@ -42,25 +52,25 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isPasswordValid) {
-      setError('Please ensure passwords match and are at least 6 characters');
-      return;
-    }
+    setError('');
+    setLoading(true);
 
     try {
       if (isSignUp) {
-        const result = await signUp(email, password, referralCode);
-        if (!result.success) {
-          setError(result.error);
-        }
+        await signUp(email, password, referralCode);
+        // The verification form will show automatically because
+        // signUp function sets verificationPending to true
+        setVerificationInput(''); // Clear any previous verification input
       } else {
         await signIn(email, password);
         router.push('/');
       }
-    } catch (err) {
-      console.error(err);
-      setError(isSignUp ? 'Failed to create account.' : 'Invalid email or password.');
+    } catch (error) {
+      console.error('Error in signup:', error);
+      setError(error.message || 'Failed to create account');
     }
+
+    setLoading(false);
   };
 
   const handleVerification = async (e) => {
@@ -195,7 +205,7 @@ export default function Login() {
             <p className="text-gray-600">
               Enter the verification code sent to your email
             </p>
-            <p className="text-red-600 font-semibold border border-red-200 bg-red-50 p-3 rounded">
+            <p className="text-orange-600 font-semibold border border-orange-200 bg-orange-50 p-3 rounded">
               Please check your spam folder if you don't see the email in your inbox
             </p>
             <input
