@@ -4,10 +4,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { useFirestore } from '../hooks/useFirestore';
+import { FaArrowLeft } from 'react-icons/fa';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
-export default function BuyTokens() {
+const BuyTokens = () => {
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,111 +46,74 @@ export default function BuyTokens() {
     }
   }, [user, router, searchParams]);
 
-  const tokenPackages = [
-    { amount: 3, price: 4 },
-    { amount: 10, price: 12 },
-    { amount: 25, price: 20 },
-  ];
-
-  const handlePurchase = async (amount, price) => {
-    console.log('Starting purchase process:', { amount, price, userId: user.uid });
-    
+  const handlePurchase = async (priceId, tokenAmount) => {
     try {
-      console.log('Creating checkout session...');
+      const stripe = await stripePromise;
+      
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount,
-          price,
-          userId: user.uid,
+          priceId,
+          tokenAmount,
         }),
       });
 
-      console.log('Checkout session response received');
-      const data = await response.json();
-      console.log('Session data:', data);
-
-      if (data.error) {
-        console.error('Error in session data:', data.error);
-        setMessage('Failed to create checkout session');
-        return;
-      }
-
-      const { sessionId } = data;
-      console.log('Got session ID:', sessionId);
-
-      console.log('Loading Stripe...');
-      const stripe = await stripePromise;
-      console.log('Redirecting to checkout...');
-      
+      const { sessionId } = await response.json();
       const { error } = await stripe.redirectToCheckout({ sessionId });
 
       if (error) {
-        console.error('Stripe redirect error:', error);
-        setMessage(error.message);
+        console.error('Error:', error);
       }
-    } catch (error) {
-      console.error('Purchase process error:', error);
-      setMessage('Something went wrong. Please try again.');
+    } catch (err) {
+      console.error('Error:', err);
     }
   };
 
+  const tokenPackages = [
+    { amount: 3, price: 4, priceId: 'price_1OqQPyRs5O538pxZXXXXXXXX' },
+    { amount: 10, price: 12, priceId: 'price_1OqQPyRs5O538pxZYYYYYYYY' },
+    { amount: 25, price: 20, priceId: 'price_1OqQPyRs5O538pxZZZZZZZZZ' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-            Get More Tokens
-          </h2>
-          <p className="mt-4 text-xl text-gray-600">
-            Each token lets you solve one Boggle board
-          </p>
+    <div className="min-h-screen bg-gray-50 py-12 px-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-12">
+          <h1 className="text-3xl font-bold text-gray-900">Buy Tokens</h1>
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <FaArrowLeft className="mr-2" />
+            Return
+          </button>
         </div>
 
-        <div className="mt-12 grid gap-8 md:grid-cols-3">
-          {tokenPackages.map(({ amount, price }) => (
-            <div
-              key={amount}
-              className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:scale-105"
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {tokenPackages.map((pkg) => (
+            <button
+              key={pkg.amount}
+              onClick={() => handlePurchase(pkg.priceId, pkg.amount)}
+              className="relative bg-white rounded-xl shadow-md p-8 transition-transform hover:scale-105 text-left h-48 flex items-center justify-between"
             >
-              <div className="px-6 py-8">
-                <div className="text-center">
-                  <div className="mt-4 flex items-baseline justify-center">
-                    <span className="text-5xl font-extrabold text-blue-600">{amount}</span>
-                    <span className="ml-1 text-2xl font-medium text-gray-500">
-                      tokens
-                    </span>
-                  </div>
-                  <div className="mt-4 text-3xl font-bold text-gray-900">
-                    ${price}
-                  </div>
-                  <div className="mt-2 text-gray-500">
-                    ${(price/amount).toFixed(2)} per token
-                  </div>
-                </div>
+              <div className="flex flex-col items-start">
+                <h2 className="text-2xl font-bold text-gray-900">{pkg.amount} Tokens</h2>
               </div>
-              <div className="px-6 pb-8">
-                <button
-                  onClick={() => handlePurchase(amount, price)}
-                  className="w-full bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors font-semibold transform hover:scale-105"
-                >
-                  Buy Now
-                </button>
+              <div className="text-4xl font-bold text-blue-600">
+                ${pkg.price}
               </div>
-            </div>
+              <div className="absolute top-4 right-4 text-sm text-gray-500">
+                ${(pkg.price / pkg.amount).toFixed(2)}/token
+              </div>
+            </button>
           ))}
         </div>
 
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => router.push('/')}
-            className="text-blue-500 hover:text-blue-600 font-semibold"
-          >
-            ← Back to Game
-          </button>
+        <div className="mt-8 text-center text-gray-700">
+          <p>Each token grants one use of the Boggle word detection system. For a guaranteed victory, it is recommended to use 3 tokens per game.</p>
         </div>
 
         {message && (
@@ -160,4 +124,6 @@ export default function BuyTokens() {
       </div>
     </div>
   );
-} 
+};
+
+export default BuyTokens; 

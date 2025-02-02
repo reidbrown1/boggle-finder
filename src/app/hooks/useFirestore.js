@@ -12,13 +12,12 @@ import {
 } from 'firebase/firestore';
 
 export const useFirestore = () => {
-  const createUserDocument = async (userId, email, referralCode = '') => {
+  const createUserDocument = async (uid, email, referralCode = '') => {
     try {
-      // Generate a random 6-character referral code for the new user
       const userReferralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       
-      // If a referral code was provided, verify it and give bonus tokens
-      let bonusTokens = 0;
+      // Initial tokens setup
+      let startingTokens = 1;
       if (referralCode) {
         const q = query(
           collection(db, 'users'),
@@ -26,16 +25,22 @@ export const useFirestore = () => {
         );
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
-          bonusTokens = 5; // Bonus tokens for using a referral code
+          startingTokens = 3; // Base tokens (1) + referral bonus (2)
+          
+          // Add bonus tokens to the referrer
+          const referrerDoc = querySnapshot.docs[0];
+          await updateDoc(doc(db, 'users', referrerDoc.id), {
+            tokens: increment(2)
+          });
         }
       }
-      
-      await setDoc(doc(db, 'users', userId), {
+
+      await setDoc(doc(db, 'users', uid), {
         email,
-        tokens: 10 + bonusTokens, // Starting tokens + bonus
-        tokensUsed: 0,
         referralCode: userReferralCode,
-        signUpDate: new Date(),
+        signUpDate: new Date().toISOString(),
+        tokens: startingTokens,
+        tokensUsed: 0,
         usedReferralCode: referralCode || null
       });
     } catch (error) {
@@ -71,5 +76,35 @@ export const useFirestore = () => {
     }
   };
 
-  return { createUserDocument, getUserTokens, decrementTokens };
+  // Add referral code validation function
+  const validateReferralCode = async (code) => {
+    if (!code) return false;
+    try {
+      const q = query(
+        collection(db, 'users'),
+        where('referralCode', '==', code)
+      );
+      const querySnapshot = await getDocs(q);
+      return !querySnapshot.empty;
+    } catch (error) {
+      console.error('Error validating referral code:', error);
+      return false;
+    }
+  };
+
+  // Add function to get user's referral code
+  const getUserReferralCode = async (userId) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        return userDoc.data().referralCode;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting referral code:', error);
+      throw error;
+    }
+  };
+
+  return { createUserDocument, getUserTokens, decrementTokens, validateReferralCode, getUserReferralCode };
 }; 

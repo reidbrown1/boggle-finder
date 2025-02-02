@@ -3,11 +3,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useFirestore } from './hooks/useFirestore';
+import { FaBars, FaTimes } from 'react-icons/fa';
 
 export default function Home() {
   const { user, logOut } = useAuth();
   const router = useRouter();
-  const { saveGame, getUserHistory, getUserTokens, decrementTokens } = useFirestore();
+  const { saveGame, getUserHistory, getUserTokens, decrementTokens, getUserReferralCode } = useFirestore();
   const [letters, setLetters] = useState('');
   const [words, setWords] = useState([]);
   const [dictionary, setDictionary] = useState(new Set());
@@ -19,6 +20,10 @@ export default function Home() {
   const [error, setError] = useState('');
   const [showInstructions, setShowInstructions] = useState(false);
   const [showWhyThisExists, setShowWhyThisExists] = useState(false);
+  const [showCode, setShowCode] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isTestMode, setIsTestMode] = useState(false);
 
   // Load Scrabble dictionary when component mounts
   useEffect(() => {
@@ -84,15 +89,25 @@ export default function Home() {
     return grid;
   };
 
+  const toggleTestMode = () => {
+    setIsTestMode(!isTestMode);
+    if (isTestMode) {
+      // Clear board when turning test mode off
+      handleClear();
+    }
+  };
+
   const findWords = async () => {
     if (letters.length !== 16) return;
-    if (tokens <= 0) return;
+    if (!isTestMode && tokens <= 0) return;
     
     setIsLoading(true);
     
     try {
-      await decrementTokens(user.uid);
-      setTokens(prev => prev - 1);
+      if (!isTestMode) {
+        await decrementTokens(user.uid);
+        setTokens(prev => prev - 1);
+      }
       
       const board = createGrid();
       const foundWords = new Set();
@@ -154,12 +169,13 @@ export default function Home() {
         return a.localeCompare(b);
       });
 
-      setWords(sortedWords);
+      // Limit words in test mode
+      setWords(isTestMode ? sortedWords.slice(0, 2) : sortedWords);
       setWordPaths(paths);
       setCurrentWordIndex(0);
       setIsLoading(false);
     } catch (error) {
-      console.error('Error updating tokens:', error);
+      console.error('Error:', error);
       setError('Failed to use token');
       setIsLoading(false);
       return;
@@ -176,12 +192,6 @@ export default function Home() {
     setCurrentWordIndex(prev => 
       prev > 0 ? prev - 1 : prev
     );
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && letters.length === 16) {
-      findWords();
-    }
   };
 
   const handleClear = () => {
@@ -227,7 +237,7 @@ export default function Home() {
           <ol className="list-decimal list-inside space-y-2 ml-2">
             <li>Begin your game of boggle on your phone</li>
             <li>Enter the 16 letters for the round</li>
-            <li>Press "Find All Words"</li>
+            <li>Press "Find Words"</li>
             <li>All words available will appear and in the order in which you must connect the letters</li>
         </ol>
 
@@ -306,60 +316,153 @@ export default function Home() {
     </div>
   );
 
+  const handleReferralCode = async () => {
+    if (!showCode && user) {
+      const code = await getUserReferralCode(user.uid);
+      setReferralCode(code);
+    }
+    setShowCode(!showCode);
+  };
+
+  // Add useEffect to load referral code when sidebar opens
+  useEffect(() => {
+    const loadReferralCode = async () => {
+      if (isSidebarOpen && user && !referralCode) {
+        const code = await getUserReferralCode(user.uid);
+        setReferralCode(code);
+      }
+    };
+    loadReferralCode();
+  }, [isSidebarOpen, user]);
+
+  // Update the Sidebar component to include email display
+  const Sidebar = () => (
+    <div 
+      className={`fixed top-0 left-0 h-full w-64 bg-gray-50 shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${
+        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}
+    >
+      <div className="p-4">
+        <div className="flex justify-end">
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="p-2 hover:bg-gray-100 rounded-full"
+          >
+            <FaTimes className="w-6 h-6 text-gray-600" />
+          </button>
+        </div>
+
+        <div className="space-y-4 mt-4">
+          <button
+            onClick={() => {
+              router.push('/buy-tokens');
+              setIsSidebarOpen(false);
+            }}
+            className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-left"
+          >
+            Buy Tokens
+          </button>
+
+          <button
+            onClick={() => {
+              setShowInstructions(true);
+              setIsSidebarOpen(false);
+            }}
+            className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-left"
+          >
+            How to Use
+          </button>
+
+          <button
+            onClick={() => {
+              setShowWhyThisExists(true);
+              setIsSidebarOpen(false);
+            }}
+            className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-left"
+          >
+            Why This Exists?
+          </button>
+
+          <button
+            onClick={() => {
+              handleLogout();
+              setIsSidebarOpen(false);
+            }}
+            className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-left"
+          >
+            Logout
+          </button>
+
+          {/* Referral Code Card */}
+          <div className="bg-white p-4 rounded-lg shadow-md mt-4">
+            <p className="text-sm text-gray-600">Your Referral Code:</p>
+            <p className="text-xl font-bold text-blue-600">{referralCode}</p>
+            <p className="text-xs text-gray-500 mt-2">
+              Share this code with friends! When they sign up using your code, 
+              you both get 2 extra tokens!
+            </p>
+          </div>
+
+          {/* Email Card */}
+          <div className="bg-white p-4 rounded-lg shadow-md">
+            <p className="text-sm text-gray-600">Your Email:</p>
+            <p className="text-sm text-gray-900">{user?.email}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen relative">
-      {/* Add Instructions button next to tokens display */}
-      <div className="absolute top-4 left-4 flex gap-4">
-        <div className="bg-gray-100 px-4 py-2 rounded-lg font-bold">
+      {/* Hamburger menu button */}
+      <div className="absolute top-4 left-4">
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-2 hover:bg-gray-100 rounded-lg"
+        >
+          <FaBars className="w-6 h-6 text-gray-600" />
+        </button>
+      </div>
+
+      {/* Updated tokens display with larger text */}
+      <div className="absolute top-4 right-4 flex items-center gap-4">
+        {/* Test mode button with disabled state */}
+        <button
+          onClick={toggleTestMode}
+          disabled={words.length > 0}
+          className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-300"
+        >
+          Test Mode {isTestMode ? 'On' : 'Off'}
+        </button>
+        <div className="bg-gray-100 px-5 py-3 rounded-lg font-bold text-lg">
           Tokens: {tokens}
         </div>
-        <button
-          onClick={() => router.push('/buy-tokens')}
-          className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors"
-        >
-          Buy Tokens
-        </button>
-        <button
-          onClick={() => setShowInstructions(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          How to Use
-        </button>
-        <button
-          onClick={() => setShowWhyThisExists(true)}
-          className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-        >
-          Why This Exists?
-        </button>
       </div>
 
-      {/* Add Modal */}
-      {showInstructions && <InstructionsModal />}
+      {/* Sidebar */}
+      <Sidebar />
 
-      {/* Add the new modal */}
+      {/* Modals */}
+      {showInstructions && <InstructionsModal />}
       {showWhyThisExists && <WhyThisExistsModal />}
 
-      {/* Logout Button in top right */}
-      <div className="absolute top-4 right-4">
-        <button
-          onClick={handleLogout}
-          className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-        >
-          Logout
-        </button>
-      </div>
-
-      {/* Main content - centered */}
-      <div className="min-h-screen flex flex-col items-center justify-center gap-8 p-8">
-        <input 
-          type="text" 
-          value={letters}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          className="border border-gray-300 rounded-lg p-4 w-full max-w-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Enter exactly 16 letters..."
-          maxLength={16}
-        />
+      {/* Main content */}
+      <div className="min-h-screen flex flex-col items-center pt-32 gap-8 p-8">
+        {words.length === 0 ? (
+          <input 
+            type="text" 
+            value={letters}
+            onChange={handleInput}
+            className="border border-gray-300 rounded-lg p-4 w-full max-w-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter exactly 16 letters..."
+            maxLength={16}
+          />
+        ) : (
+          <div className="border border-gray-300 rounded-lg p-4 w-full max-w-md bg-gray-100">
+            {letters}
+          </div>
+        )}
         
         <div className="relative">
           <div className="grid grid-cols-4 gap-2">
@@ -367,7 +470,7 @@ export default function Home() {
               row.map((letter, colIndex) => (
                 <div 
                   key={`${rowIndex}-${colIndex}`}
-                  className="w-12 h-12 border border-gray-300 flex items-center justify-center font-bold text-lg"
+                  className="w-12 h-12 border border-gray-300 flex items-center justify-center font-bold text-lg rounded-md"
                 >
                   {letter}
                 </div>
@@ -438,49 +541,55 @@ export default function Home() {
           )}
         </div>
 
-        <div className="flex gap-4">
-          {words.length === 0 && (
-            <button
-              onClick={findWords}
-              disabled={letters.length !== 16 || isLoading || tokens <= 0}
-              className="bg-blue-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 hover:bg-blue-600 transition-colors"
-            >
-              {tokens <= 0 ? 'Out of Tokens' : 
-                isLoading ? `Loading${loadingDots}` : 'Find All Words'}
-            </button>
-          )}
-
-          <button
-            onClick={handleClear}
-            className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors"
-          >
-            Clear Board
-          </button>
+        {/* Current word display */}
+        <div className="text-2xl font-bold h-12 min-w-[200px] border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
+          {words.length > 0 ? words[currentWordIndex] : ''}
         </div>
 
-        {words.length > 0 && (
-          <div className="w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <button
-                onClick={handlePrevious}
-                disabled={currentWordIndex === 0}
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg disabled:opacity-50 hover:bg-gray-600 transition-colors"
-              >
-                Previous
-              </button>
-              <div className="text-xl font-bold">
-                {words[currentWordIndex]} ({currentWordIndex + 1}/{words.length})
-              </div>
-              <button
-                onClick={handleNext}
-                disabled={currentWordIndex === words.length - 1}
-                className="bg-gray-500 text-white px-4 py-2 rounded-lg disabled:opacity-50 hover:bg-gray-600 transition-colors"
-              >
-                Next
-              </button>
-            </div>
+        {/* Button container and test mode message */}
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex gap-4 items-center">
+            <button
+              onClick={handleClear}
+              disabled={letters.length === 0}
+              className="bg-red-700 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-red-800"
+            >
+              Clear
+            </button>
+
+            <button
+              onClick={findWords}
+              disabled={letters.length !== 16 || isLoading || tokens <= 0 || words.length > 0}
+              className="bg-green-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors w-33 enabled:hover:bg-green-600"
+            >
+              {tokens <= 0 ? 'Buy Tokens' : 
+                isLoading ? `Loading${loadingDots}` : 'Search'}
+            </button>
+
+            <button
+              onClick={handlePrevious}
+              disabled={currentWordIndex === 0 || words.length === 0}
+              className="bg-gray-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-600"
+            >
+              Prev
+            </button>
+
+            <button
+              onClick={handleNext}
+              disabled={currentWordIndex === words.length - 1 || words.length === 0}
+              className="bg-gray-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors enabled:hover:bg-gray-600"
+            >
+              Next
+            </button>
           </div>
-        )}
+
+          {/* Test mode disclaimer */}
+          {isTestMode && (
+            <div className="text-center text-sm text-gray-600 mt-4 max-w-md">
+              <p>This is test mode - you will only be shown the top two words. This is so you can see how this software functions. To see all available words you must use a token.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
