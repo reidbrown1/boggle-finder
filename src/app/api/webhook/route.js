@@ -7,54 +7,62 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
+// Add GET method handler
+export async function GET() {
+  return NextResponse.json({ status: 'webhook endpoint active' });
+}
+
 export async function POST(req) {
-  const body = await req.text();
-  const headersList = headers();
-  const sig = headersList.get('stripe-signature');
-
-  let event;
-
+  console.log('🎯 Webhook endpoint hit');
   try {
-    event = stripe.webhooks.constructEvent(body, sig, endpointSecret);
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return NextResponse.json({ error: err.message }, { status: 400 });
-  }
+    const body = await req.text();
+    const headersList = headers();
+    const sig = headersList.get('stripe-signature');
+    
+    if (!sig) {
+      console.error('No stripe signature found');
+      return NextResponse.json({ error: 'No signature' }, { status: 400 });
+    }
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const { userId, tokenAmount } = session.metadata;
-    console.log('💰 Payment completed, starting token update:', { userId, tokenAmount });
+    const event = stripe.webhooks.constructEvent(body, sig, endpointSecret);
+    console.log('Event type received:', event.type);
 
-    try {
-      // Simpler token update logic
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const { userId, tokenAmount } = session.metadata;
+      console.log('Processing payment completion:', { userId, tokenAmount });
+
       const userRef = doc(db, 'users', userId);
-      console.log('📄 Getting user document for:', userId);
-      
       const userDoc = await getDoc(userRef);
-      console.log('📊 Current user data:', userDoc.data());
       
       if (!userDoc.exists()) {
-        console.error('❌ User document not found:', userId);
         throw new Error('User not found');
       }
 
       const currentTokens = userDoc.data().tokens || 0;
       const newTokens = currentTokens + parseInt(tokenAmount);
-      console.log('🔄 Token update calculation:', { currentTokens, newTokens });
-
+      
       await updateDoc(userRef, {
-        tokens: newTokens
+        tokens: newTokens,
+        lastUpdated: new Date().toISOString(),
+        lastPurchase: {
+          amount: tokenAmount,
+          timestamp: new Date().toISOString()
+        }
       });
-      console.log('✅ Tokens successfully updated in database');
-
-    } catch (error) {
-      console.error('❌ Error in token update process:', error);
-      return NextResponse.json({ error: 'Error updating tokens' }, { status: 500 });
+      
+      console.log('Success:', { userId, oldTokens: currentTokens, newTokens });
+      return NextResponse.json({ success: true });
     }
-  }
 
-  return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true });
+  } catch (err) {
+    console.error('Webhook error:', err.message);
+    return NextResponse.json(
+      { error: 'Webhook handler failed' },
+      { status: 400 }
+    );
+  }
 }
 
 export const config = {
