@@ -22,16 +22,19 @@ export default function BuyTokens() {
 
     // Check for success/canceled status
     if (searchParams.get('success')) {
-      console.log('Payment successful, attempting to refresh tokens');
+      console.log('🎉 Payment successful, starting token refresh');
       setMessage('Payment successful! Your tokens have been added to your account.');
       
       const refreshTokens = async () => {
         try {
-          console.log('Getting updated token count...');
+          console.log('📊 Getting updated token count...');
+          const beforeTokens = await getUserTokens(user.uid);
+          console.log('Before refresh token count:', beforeTokens);
+          
           const newTokenCount = await getUserTokens(user.uid);
-          console.log('New token count:', newTokenCount);
+          console.log('✅ After refresh token count:', newTokenCount);
         } catch (error) {
-          console.error('Error refreshing tokens:', error);
+          console.error('❌ Error refreshing tokens:', error);
         }
       };
       refreshTokens();

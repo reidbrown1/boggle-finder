@@ -24,26 +24,32 @@ export async function POST(req) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const { userId, tokenAmount } = session.metadata;
+    console.log('💰 Payment completed, starting token update:', { userId, tokenAmount });
 
     try {
       // Simpler token update logic
       const userRef = doc(db, 'users', userId);
+      console.log('📄 Getting user document for:', userId);
+      
       const userDoc = await getDoc(userRef);
+      console.log('📊 Current user data:', userDoc.data());
       
       if (!userDoc.exists()) {
+        console.error('❌ User document not found:', userId);
         throw new Error('User not found');
       }
 
       const currentTokens = userDoc.data().tokens || 0;
       const newTokens = currentTokens + parseInt(tokenAmount);
+      console.log('🔄 Token update calculation:', { currentTokens, newTokens });
 
       await updateDoc(userRef, {
         tokens: newTokens
       });
+      console.log('✅ Tokens successfully updated in database');
 
-      console.log(`Updated tokens for user ${userId}: ${currentTokens} -> ${newTokens}`);
     } catch (error) {
-      console.error('Error updating tokens:', error);
+      console.error('❌ Error in token update process:', error);
       return NextResponse.json({ error: 'Error updating tokens' }, { status: 500 });
     }
   }
