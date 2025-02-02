@@ -76,7 +76,9 @@ export default function Home() {
   const createGrid = () => {
     const grid = [];
     for (let i = 0; i < 16; i += 4) {
-      const row = letters.slice(i, i + 4).padEnd(4, ' ').split('');
+      const row = letters.slice(i, i + 4).padEnd(4, ' ').split('').map(letter => 
+        letter === 'Q' ? 'QU' : letter
+      );
       grid.push(row);
     }
     return grid;
@@ -107,9 +109,19 @@ export default function Home() {
       }
 
       function searchWord(x, y, visited, currentWord, path) {
-        if (currentWord.length >= 3 && dictionary.has(currentWord)) {
-          foundWords.add(currentWord);
-          paths.set(currentWord, [...path]);
+        const currentCell = board[x][y];
+        let newWord = currentWord;
+        
+        // If we find a Q, automatically add U
+        if (currentCell === 'QU') {
+          newWord += 'QU';
+        } else {
+          newWord += currentCell;
+        }
+
+        if (newWord.length >= 3 && dictionary.has(newWord)) {
+          foundWords.add(newWord);
+          paths.set(newWord, [...path]);
         }
 
         for (const [dx, dy] of directions) {
@@ -119,10 +131,10 @@ export default function Home() {
           if (isValid(newX, newY) && !visited.has(`${newX},${newY}`)) {
             visited.add(`${newX},${newY}`);
             searchWord(
-              newX, 
-              newY, 
-              visited, 
-              currentWord + board[newX][newY],
+              newX,
+              newY,
+              visited,
+              newWord,
               [...path, { x: newX, y: newY }]
             );
             visited.delete(`${newX},${newY}`);
@@ -133,7 +145,7 @@ export default function Home() {
       for (let i = 0; i < 4; i++) {
         for (let j = 0; j < 4; j++) {
           const visited = new Set([`${i},${j}`]);
-          searchWord(i, j, visited, board[i][j], [{ x: i, y: j }]);
+          searchWord(i, j, visited, '', [{ x: i, y: j }]);
         }
       }
 
@@ -217,7 +229,7 @@ export default function Home() {
             <li>Enter the 16 letters for the round</li>
             <li>Press "Find All Words"</li>
             <li>All words available will appear and in the order in which you must connect the letters</li>
-          </ol>
+        </ol>
 
           <p className="text-sm text-gray-600 mt-4">
             Each search costs 1 token. Make sure to enter the letters correctly before searching!
@@ -260,8 +272,8 @@ export default function Home() {
               <div>
                 <span className="font-semibold">Word Race:</span> $6 to win $4
                 <a href="https://apps.apple.com/us/app/word-race-train-your-brain/id1199652148" 
-                   target="_blank" 
-                   rel="noopener noreferrer"
+            target="_blank"
+            rel="noopener noreferrer"
                    className="text-blue-500 hover:text-blue-600 block text-sm">
                   Download App →
                 </a>
@@ -269,8 +281,8 @@ export default function Home() {
               <div>
                 <span className="font-semibold">World Winner:</span> $10 to win $7
                 <a href="https://apps.apple.com/us/app/worldwinner-play-cash-games/id1248993106" 
-                   target="_blank" 
-                   rel="noopener noreferrer"
+            target="_blank"
+            rel="noopener noreferrer"
                    className="text-blue-500 hover:text-blue-600 block text-sm">
                   Download App →
                 </a>
@@ -301,6 +313,12 @@ export default function Home() {
         <div className="bg-gray-100 px-4 py-2 rounded-lg font-bold">
           Tokens: {tokens}
         </div>
+        <button
+          onClick={() => router.push('/buy-tokens')}
+          className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors"
+        >
+          Buy Tokens
+        </button>
         <button
           onClick={() => setShowInstructions(true)}
           className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
