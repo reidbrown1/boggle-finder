@@ -43,9 +43,9 @@ export default function BuyTokens() {
   }, [user, router, searchParams]);
 
   const tokenPackages = [
-    { amount: 5, price: 8, savings: '' },
-    { amount: 10, price: 12, savings: 'Save 25%' },
-    { amount: 25, price: 20, savings: 'Best Value! Save 50%' },
+    { amount: 3, price: 4 },
+    { amount: 10, price: 12 },
+    { amount: 25, price: 20 },
   ];
 
   const handlePurchase = async (amount, price) => {
@@ -99,23 +99,23 @@ export default function BuyTokens() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-            Purchase Tokens
+            Get More Tokens
           </h2>
           <p className="mt-4 text-xl text-gray-600">
-            Choose the package that works best for you
+            Each token lets you solve one Boggle board
           </p>
         </div>
 
         <div className="mt-12 grid gap-8 md:grid-cols-3">
-          {tokenPackages.map(({ amount, price, savings }) => (
+          {tokenPackages.map(({ amount, price }) => (
             <div
               key={amount}
-              className="bg-white rounded-lg shadow-lg overflow-hidden"
+              className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:scale-105"
             >
               <div className="px-6 py-8">
                 <div className="text-center">
                   <div className="mt-4 flex items-baseline justify-center">
-                    <span className="text-5xl font-extrabold">{amount}</span>
+                    <span className="text-5xl font-extrabold text-blue-600">{amount}</span>
                     <span className="ml-1 text-2xl font-medium text-gray-500">
                       tokens
                     </span>
@@ -123,19 +123,17 @@ export default function BuyTokens() {
                   <div className="mt-4 text-3xl font-bold text-gray-900">
                     ${price}
                   </div>
-                  {savings && (
-                    <div className="mt-2 text-sm text-green-600 font-semibold">
-                      {savings}
-                    </div>
-                  )}
+                  <div className="mt-2 text-gray-500">
+                    ${(price/amount).toFixed(2)} per token
+                  </div>
                 </div>
               </div>
               <div className="px-6 pb-8">
                 <button
                   onClick={() => handlePurchase(amount, price)}
-                  className="w-full bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors font-semibold"
+                  className="w-full bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors font-semibold transform hover:scale-105"
                 >
-                  Purchase
+                  Buy Now
                 </button>
               </div>
             </div>
@@ -152,7 +150,7 @@ export default function BuyTokens() {
         </div>
 
         {message && (
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center text-gray-700">
             {message}
           </div>
         )}
