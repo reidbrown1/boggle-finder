@@ -4,4 +4,10 @@ export const SCRABBLE_WORDS = new Set([
   "AARDWOLF", "AARDWOLVES", "AARGH", "AARRGH", "AARRGHH", "AAS", "AASVOGEL", "AASVOGELS", "ABA",
   // ... thousands more words ...
   "ZYZZYVA", "ZYZZYVAS", "ZZZS"
-]); 
+]);
+
+// Add this for debugging
+console.log("Dictionary initialized with size:", SCRABBLE_WORDS.size);
+if (SCRABBLE_WORDS.size === 0) {
+  console.error("Dictionary is empty!");
+} 

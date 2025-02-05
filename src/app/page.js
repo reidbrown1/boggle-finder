@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useFirestore } from './hooks/useFirestore';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import Link from 'next/link';
+import dictionaryData from '../../dictionary.json';  // Go up two levels to reach root
+console.log("Dictionary size:", dictionaryData.length);
+console.log("Sample words:", dictionaryData.slice(0, 10));
 
 export default function Home() {
   const { user, logOut } = useAuth();
@@ -12,7 +15,8 @@ export default function Home() {
   const { saveGame, getUserHistory, getUserTokens, decrementTokens, getUserReferralCode } = useFirestore();
   const [letters, setLetters] = useState('');
   const [words, setWords] = useState([]);
-  const [dictionary, setDictionary] = useState(new Set());
+  const [dictionary] = useState(new Set(dictionaryData.filter(word => word.length >= 3)
+                                                    .map(word => word.toUpperCase())));
   const [isLoading, setIsLoading] = useState(false);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [wordPaths, setWordPaths] = useState(new Map());
@@ -26,18 +30,11 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isTestMode, setIsTestMode] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-
-  // Load Scrabble dictionary when component mounts
-  useEffect(() => {
-    fetch('https://raw.githubusercontent.com/benjamincrom/scrabble/refs/heads/master/scrabble/dictionary.json')
-      .then(response => response.json())
-      .then(data => {
-        // Filter for words 3+ letters and convert to uppercase
-        const words = data.filter(word => word.length >= 3)
-                         .map(word => word.toUpperCase());
-        setDictionary(new Set(words));
-      });
-  }, []);
+  const [isBonusAchieved, setIsBonusAchieved] = useState(false);
+  const [coveredPositions, setCoveredPositions] = useState(new Set());
+  const [usedPositions, setUsedPositions] = useState(new Set());
+  const [usedWords, setUsedWords] = useState(new Set());
+  const [showWordList, setShowWordList] = useState(false);
 
   // Add this effect to animate the loading dots
   useEffect(() => {
@@ -129,17 +126,23 @@ export default function Home() {
         const currentCell = board[x][y];
         let newWord = currentWord;
         
-        // If we find a Q, automatically add U
         if (currentCell === 'QU') {
           newWord += 'QU';
         } else {
           newWord += currentCell;
         }
 
-        if (newWord.length >= 3 && dictionary.has(newWord)) {
-          foundWords.add(newWord);
-          paths.set(newWord, [...path]);
+        // Early exit if word can't be in dictionary
+        // Only check dictionary when word is 3+ letters
+        if (newWord.length >= 3) {
+          if (dictionary.has(newWord)) {
+            foundWords.add(newWord);
+            paths.set(newWord, [...path]);
+          }
         }
+
+        // Only continue searching if path length is less than longest possible word (e.g., 8)
+        if (path.length >= 8) return;
 
         for (const [dx, dy] of directions) {
           const newX = x + dx;
@@ -166,18 +169,16 @@ export default function Home() {
         }
       }
 
-      const sortedWords = [...foundWords].sort((a, b) => {
-        if (b.length !== a.length) return b.length - a.length;
-        return a.localeCompare(b);
-      });
+      // Convert foundWords to an array of objects with word and path
+      const wordObjects = [...foundWords].map(word => ({
+        word,
+        path: paths.get(word)
+      }));
 
-      // Add console logging here
-      console.log('All words and their paths:');
-      sortedWords.forEach(word => {
-        console.log(`['${word}', ${JSON.stringify(paths.get(word))}],`);
-      });
+      // Sort words by length initially
+      const sortedWords = wordObjects.sort((a, b) => b.word.length - a.word.length);
 
-      setWords(isTestMode ? sortedWords.slice(0, 2) : sortedWords);
+      setWords(sortedWords);
       setWordPaths(paths);
       setCurrentWordIndex(0);
       setIsLoading(false);
@@ -190,9 +191,66 @@ export default function Home() {
   };
 
   const handleNext = () => {
-    setCurrentWordIndex(prev => 
-      prev < words.length - 1 ? prev + 1 : prev
-    );
+    if (currentWordIndex < words.length - 1) {
+      const currentWordObj = words[currentWordIndex];
+      const path = currentWordObj.path;
+      const newUsedPositions = new Set(usedPositions);
+      const newUsedWords = new Set(usedWords);
+
+      // Mark current word as used
+      newUsedWords.add(currentWordObj.word);
+      path.forEach(pos => newUsedPositions.add(`${pos.x},${pos.y}`));
+
+      setUsedWords(newUsedWords);
+      setUsedPositions(newUsedPositions);
+
+      // Check if all positions are covered
+      if (newUsedPositions.size === 16) {
+        setIsBonusAchieved(true);
+        // Find the longest unused word from the entire list
+        const unusedWords = words.filter(wordObj => 
+          !newUsedWords.has(wordObj.word)
+        );
+        if (unusedWords.length > 0) {
+          // Sort unused words by length and take the longest one
+          const nextWord = unusedWords.sort((a, b) => b.word.length - a.word.length)[0];
+          const nextIndex = words.indexOf(nextWord);
+          setCurrentWordIndex(nextIndex);
+        } else {
+          setCurrentWordIndex(prev => prev + 1);
+        }
+      } else if (currentWordIndex >= 10) {
+        // After 10 words, find the longest word that covers an unused position
+        const unusedPositions = Array.from({ length: 4 }, (_, i) =>
+          Array.from({ length: 4 }, (_, j) => `${i},${j}`)
+        ).flat().filter(pos => !newUsedPositions.has(pos));
+
+        if (unusedPositions.length > 0) {
+          // Try to find a word that covers an unused position
+          const nextWord = words.find(wordObj =>
+            !newUsedWords.has(wordObj.word) && 
+            wordObj.path.some(pos => unusedPositions.includes(`${pos.x},${pos.y}`))
+          );
+          
+          if (nextWord) {
+            const nextIndex = words.indexOf(nextWord);
+            setCurrentWordIndex(nextIndex);
+          } else {
+            // If no word can cover the remaining positions, revert to longest word strategy
+            const unusedWords = words.filter(wordObj => !newUsedWords.has(wordObj.word));
+            if (unusedWords.length > 0) {
+              const nextWord = unusedWords.sort((a, b) => b.word.length - a.word.length)[0];
+              const nextIndex = words.indexOf(nextWord);
+              setCurrentWordIndex(nextIndex);
+            } else {
+              setCurrentWordIndex(prev => prev + 1);
+            }
+          }
+        }
+      } else {
+        setCurrentWordIndex(prev => prev + 1);
+      }
+    }
   };
 
   const handlePrevious = () => {
@@ -206,6 +264,13 @@ export default function Home() {
     setWords([]);
     setCurrentWordIndex(0);
     setWordPaths(new Map());
+    setUsedPositions(new Set());
+    setUsedWords(new Set());
+    setIsBonusAchieved(false);
+    // Wait for React to re-render the input
+    setTimeout(() => {
+      document.querySelector('input[type="text"]')?.focus();
+    }, 0);
   };
 
   // Calculate cell center positions for SVG lines
@@ -518,6 +583,47 @@ export default function Home() {
     </div>
   );
 
+  // Add this function near your other handlers
+  const handleKeyDown = (e) => {
+    // Handle Enter for search
+    if (e.key === 'Enter' && letters.length === 16) {
+      if (tokens <= 0) {
+        router.push('/buy-tokens');
+      } else {
+        findWords();
+      }
+    }
+    
+    // Handle 'f' for next word
+    if (e.key.toLowerCase() === 'f') {
+      if (words.length > 0 && currentWordIndex < words.length - 1) {
+        handleNext();
+      }
+    }
+    
+    // Handle 's' for previous word
+    if (e.key.toLowerCase() === 's') {
+      if (words.length > 0 && currentWordIndex > 0) {
+        handlePrevious();
+      }
+    }
+
+    // Handle '1' for clearing the board
+    if (e.key === '1') {
+      if (letters.length > 0) {
+        handleClear();
+      }
+    }
+  };
+
+  // Add this useEffect near your other effects
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [words, currentWordIndex, tokens, letters]); // Include dependencies
+
   return (
     <>
       {!user ? (
@@ -563,6 +669,7 @@ export default function Home() {
                 type="text" 
                 value={letters}
                 onChange={handleInput}
+                onKeyDown={handleKeyDown}
                 className="border border-gray-300 rounded-lg p-4 w-full max-w-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter exactly 16 letters..."
                 maxLength={16}
@@ -576,14 +683,17 @@ export default function Home() {
             <div className="relative">
               <div className="grid grid-cols-4 gap-2">
                 {createGrid().map((row, rowIndex) => (
-                  row.map((letter, colIndex) => (
-                    <div 
-                      key={`${rowIndex}-${colIndex}`}
-                      className="w-16 h-16 border border-gray-300 flex items-center justify-center font-bold text-xl rounded-md bg-white"
-                    >
-                      {letter}
-                    </div>
-                  ))
+                  row.map((letter, colIndex) => {
+                    const isUsed = usedPositions.has(`${rowIndex},${colIndex}`);
+                    return (
+                      <div 
+                        key={`${rowIndex}-${colIndex}`}
+                        className="w-16 h-16 border border-gray-300 flex items-center justify-center font-bold text-xl rounded-md bg-white"
+                      >
+                        {letter}
+                      </div>
+                    );
+                  })
                 ))}
               </div>
 
@@ -592,15 +702,15 @@ export default function Home() {
                   className="absolute top-0 left-0 w-full h-full pointer-events-none"
                   style={{ transform: 'translate(-2px, -2px)' }}
                 >
-                  {wordPaths.get(words[currentWordIndex])?.[0] && (
+                  {wordPaths.get(words[currentWordIndex].word)?.[0] && (
                     <circle
                       cx={getCellCenter(
-                        wordPaths.get(words[currentWordIndex])[0].x,
-                        wordPaths.get(words[currentWordIndex])[0].y
+                        wordPaths.get(words[currentWordIndex].word)[0].x,
+                        wordPaths.get(words[currentWordIndex].word)[0].y
                       ).x}
                       cy={getCellCenter(
-                        wordPaths.get(words[currentWordIndex])[0].x,
-                        wordPaths.get(words[currentWordIndex])[0].y
+                        wordPaths.get(words[currentWordIndex].word)[0].x,
+                        wordPaths.get(words[currentWordIndex].word)[0].y
                       ).y}
                       r="8"
                       fill="#22C55E"
@@ -621,7 +731,7 @@ export default function Home() {
                     </circle>
                   )}
 
-                  {wordPaths.get(words[currentWordIndex])?.map((point, index, path) => {
+                  {wordPaths.get(words[currentWordIndex].word)?.map((point, index, path) => {
                     if (index === path.length - 1) return null;
                     const start = getCellCenter(point.x, point.y);
                     const end = getCellCenter(path[index + 1].x, path[index + 1].y);
@@ -652,7 +762,7 @@ export default function Home() {
 
             {/* Current word display */}
             <div className="text-2xl font-bold h-12 min-w-[200px] border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
-              {words.length > 0 ? words[currentWordIndex] : ''}
+              {words.length > 0 ? words[currentWordIndex].word : ''}
             </div>
 
             {/* Button container and test mode message */}
@@ -667,8 +777,8 @@ export default function Home() {
                 </button>
 
                 <button
-                  onClick={findWords}
-                  disabled={letters.length !== 16 || isLoading || tokens <= 0 || words.length > 0}
+                  onClick={tokens <= 0 ? () => router.push('/buy-tokens') : findWords}
+                  disabled={letters.length !== 16 || isLoading || words.length > 0}
                   className="bg-green-500 text-white px-6 py-2 rounded-lg disabled:opacity-50 transition-colors w-33 enabled:hover:bg-green-600"
                 >
                   {tokens <= 0 ? 'Buy Tokens' : 
@@ -690,12 +800,51 @@ export default function Home() {
                 >
                   Next
                 </button>
+
+                {/* Checkmark icon */}
+                <svg
+                  className={`w-6 h-6 ${isBonusAchieved ? 'text-green-500' : 'text-gray-300'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
 
               {/* Test mode disclaimer */}
               {isTestMode && (
                 <div className="text-center text-sm text-gray-600 mt-4 max-w-md bg-yellow-50 p-4 rounded-lg border border-yellow-100">
                   <p>This is test mode - you will only be shown the top two words. This is so you can see how this software functions. No tokens will be used. To see all available words you must turn off test mode.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Word list with toggle */}
+            <div className="mt-8 w-full max-w-md">
+              <button
+                onClick={() => setShowWordList(!showWordList)}
+                className="w-full flex items-center justify-center p-2 bg-yellow-100 hover:bg-yellow-200 rounded-lg transition-colors"
+              >
+                <svg
+                  className={`w-6 h-6 transform transition-transform ${showWordList ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showWordList && (
+                <div className="h-48 overflow-y-auto border border-yellow-200 rounded-lg bg-yellow-50 p-4 mt-2">
+                  <ul className="text-sm">
+                    {words.map((word, index) => (
+                      <li key={index} className={index === currentWordIndex ? 'font-bold' : ''}>
+                        {word.word}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>

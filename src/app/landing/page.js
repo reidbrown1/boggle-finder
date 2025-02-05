@@ -74,6 +74,28 @@ export default function LandingPage() {
     );
   };
 
+  const getDictionary = async () => {
+    // Check localStorage first
+    const cached = localStorage.getItem('boggleDictionary');
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    // If not in cache, fetch and store
+    try {
+      const response = await fetch('https://raw.githubusercontent.com/benjamincrom/scrabble/refs/heads/master/scrabble/dictionary.json');
+      const dictionary = await response.json();
+      
+      // Cache for future use
+      localStorage.setItem('boggleDictionary', JSON.stringify(dictionary));
+      
+      return dictionary;
+    } catch (error) {
+      console.error('Error fetching dictionary:', error);
+      return []; // Return empty array as fallback
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
